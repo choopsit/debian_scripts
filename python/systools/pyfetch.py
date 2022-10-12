@@ -110,11 +110,12 @@ def draw_logo(default):
 
 
 def get_host():
+    cu = "\33[32m"
     ch = "\33[33m"
     my_user = getpass.getuser()
     my_hostname = socket.gethostname()
 
-    return f"{ch}{my_user}{DEF}@{ch}{my_hostname}{DEF}"
+    return f"{cu}{my_user}{DEF}@{ch}{my_hostname}{DEF}"
 
 
 def get_os():
