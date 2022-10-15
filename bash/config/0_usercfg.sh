@@ -54,7 +54,3 @@ fi
 
 source "${CRIPT_PATH}"/bash.sh
 source "${CRIPT_PATH}"/vim.sh
-
-# [[ $(whoami) != root ]] &&
-    # source "${CRIPT_PATH}"/xfce.sh
-    # TODO: add more configurations
