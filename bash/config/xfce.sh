@@ -57,11 +57,11 @@ EOF
 testing_sources(){
     cat <<EOF > /etc/apt/sources.list
 # testing
-#deb http://deb.debian.org/debian/ testing main contrib non-free
+deb http://deb.debian.org/debian/ testing main contrib non-free
 #deb-src http://deb.debian.org/debian/ testing main contrib non-free
 
 # testing security
-#deb http://deb.debian.org/debian-security/ testing-security/updates main contrib non-free
+deb http://deb.debian.org/debian-security/ testing-security/updates main contrib non-free
 #deb-src http://deb.debian.org/debian-security/ testing-security/updates main contrib non-free
 EOF
 }
@@ -89,12 +89,11 @@ clean_sources(){
     fi
 }
 
-update(){
+sys_update(){
     echo -e "${NFO} Upgrading system..."
-    apt update
+    apt update || { echo -e "${RED}WTF !!!${DEF}" && exit 1; }
     apt full-upgrade -y
 }
-
 
 install_xfce(){
     echo -e "${NFO} Installing new packages then removing useless ones..."
@@ -202,8 +201,9 @@ my_dist="$(awk -F= '/^ID=/{print $2}' /etc/os-release)"
 
 debian_version="$(lsb_release -sc)"
 
-read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
-[[ ${clean_sl} ]] && echo
+# TODO: differeciate sid and testing properly
+#read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
+#[[ ${clean_sl} ]] && echo
 
 (dpkg -l | grep -q ^"ii  kodi") ||
     read -rp "Install Kodi (mediacenter) [y/N] ? " -n1 inst_kodi
@@ -240,7 +240,7 @@ done
 
 [[ ${clean_sl} =~ ^(y|Y) ]] && clean_sources "${debian_version}"
 
-update
+sys_update
 
 install_xfce
 
@@ -261,3 +261,4 @@ read -rp "Reboot now and enjoy [Y/n] ? " -n1 reboot_now
 
 [[ ${reboot_now} ]] && echo
 [[ ${reboot_now} =~ ^(n|N) ]] || reboot
+
