@@ -200,10 +200,11 @@ my_dist="$(awk -F= '/^ID=/{print $2}' /etc/os-release)"
     echo -e "${ERR} $(basename "$0") works only on Debian" && exit 1
 
 debian_version="$(lsb_release -sc)"
+[[ ${debian_version} = "${TESTING}" ]] &&
+    grep -q '^deb .*sid' /etc/apt/sources.list && debian_version=sid
 
-# TODO: differeciate sid and testing properly
-#read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
-#[[ ${clean_sl} ]] && echo
+read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
+[[ ${clean_sl} ]] && echo
 
 (dpkg -l | grep -q ^"ii  kodi") ||
     read -rp "Install Kodi (mediacenter) [y/N] ? " -n1 inst_kodi
