@@ -27,7 +27,9 @@ usage(){
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  $(basename "$0") [OPTION]"
     echo -e "${CYN}Options${DEF}:"
-    echo -e "  -h,--help:     Print this help"
+    echo -e "${NFO} No option => install Kora icon-theme"
+    echo -e "  -h,--help:   Print this help"
+    echo -e "  -r,--remove: Remove Kora icon-theme"
     echo
 
     exit "${errcode}"
@@ -56,10 +58,10 @@ hello_kora(){
     echo
 }
 
+
 [[ $1 =~ ^-(h|-help)$ ]] && usage 0
 
-! (groups | grep -q sudo) && echo -e "${ERR} Need 'sudo' rights" && exit 1
-
+(groups | grep -qv sudo) && echo -e "${ERR} Need 'sudo' rights" && exit 1
 
 [[ $1 =~ ^-(r|-remove)$ ]] && byebye_kora
 
