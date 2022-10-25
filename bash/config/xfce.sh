@@ -92,6 +92,7 @@ clean_sources(){
 sys_update(){
     echo -e "${NFO} Upgrading system..."
     apt update || { echo -e "${RED}WTF !!!${DEF}" && exit 1; }
+    apt upgrade -y
     apt full-upgrade -y
 }
 
@@ -104,7 +105,9 @@ install_xfce(){
 
     (lspci | grep -q NVIDIA) && echo "nvidia-driver" >> "${my_pkgs}"
 
-    [[ ${inst_kodi} =~ ^(y|Y) ]] && echo "kodi" >> "${my_pkgs}"
+    [[ ${inst_kodi,,} == y ]] && echo "kodi" >> "${my_pkgs}"
+
+    [[ ${inst_virtmanager,,} == y ]] && echo "virt-manager" >> "${my_pkgs}"
 
     xargs apt install -y < "${my_pkgs}"
 
@@ -139,7 +142,7 @@ sys_config(){
         copy_conf "${dotfile}" /root
     done
 
-    [[ ${allow_root_ssh} =~ ^(y|Y) ]] &&
+    [[ ${allow_root_ssh,,} == y ]] &&
         echo "PermitRootLogin yes" > "${ssh_conf}" && systemctl restart ssh
 
     pulse_param="flat-volumes = no"
@@ -188,10 +191,24 @@ user_config(){
     done
 }
 
+add_grp(){
+    group="$1"
+    user="$2"
+
+    [[ $(groups "${user}") == *" ${group}"* ]] ||
+        read -rp "Add user '${user}' to '${group}' group [y/N] ? " -n1 add_user_to_grp
+
+    [[ ${add_user_to_grp} ]] && echo
+    [[ ${add_user_to_grp,,} == y ]] && adduser "${user}" "${group}"
+}
+
 
 [[ $2 ]] && echo -e "${ERR} Too many arguments" && usage 1
-[[ $1 =~ ^-(h|-help)$ ]] && usage 0 ||
-    { [[ $1 ]] && echo -e "${ERR} Bad argument" && usage 1; }
+if [[ $1 =~ ^-(h|-help)$ ]]; then
+    usage 0
+elif [[ $1 ]]; then
+    echo -e "${ERR} Bad argument" && usage 1
+fi
 
 [[ $(whoami) != root ]] && echo -e "${ERR} Need higher privileges" && exit 1
 
@@ -200,16 +217,11 @@ my_dist="$(awk -F= '/^ID=/{print $2}' /etc/os-release)"
     echo -e "${ERR} $(basename "$0") works only on Debian" && exit 1
 
 debian_version="$(lsb_release -sc)"
-[[ ${debian_version} = "${TESTING}" ]] &&
+[[ ${debian_version} == "${TESTING}" ]] &&
     grep -q '^deb .*sid' /etc/apt/sources.list && debian_version=sid
 
 read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
 [[ ${clean_sl} ]] && echo
-
-(dpkg -l | grep -q ^"ii  kodi") ||
-    read -rp "Install Kodi (mediacenter) [y/N] ? " -n1 inst_kodi
-
-[[ ${inst_kodi} ]] && echo
 
 ssh_conf=/etc/ssh/sshd_config
 ssh_conf2=/etc/ssh/sshd_config.d/allow_root.conf
@@ -219,27 +231,34 @@ ssh_conf2=/etc/ssh/sshd_config.d/allow_root.conf
 
 [[ ${allow_root_ssh} ]] && echo
 
+(dpkg -l | grep -q ^"ii  kodi") ||
+    read -rp "Install Kodi (mediacenter) [y/N] ? " -n1 inst_kodi
+
+[[ ${inst_kodi} ]] && echo
+
+(lspci | grep -qv paravirtual) && (lspci | grep -qiv virtualbox) &&
+    read -rp "Install Virtual Machine Manager (virt-manager) [y/N] ? " -n1 inst_virtmanager
+
+[[ ${inst_virtmanager} ]] && echo
+
 users_cpt=0
 
 for user_home in /home/*; do
     user="$(basename "${user_home}")"
 
     if (grep -q ^"${user}:" /etc/passwd); then
-        [[ $(groups "${user}") == *" sudo"* ]] ||
-            read -rp "Add user '${user}' to 'sudo' group [y/N] ? " -n1 user_sudo
-
-        [[ ${user_sudo} ]] && echo
-        [[ ${user_sudo} =~ ^(y|Y) ]] && adduser "${user}" sudo
+        add_grp sudo "${user}"
+        [[ ${inst_virtmanager,,} == y ]] && add_grp libvirt "${user}"
 
         read -rp "Apply configuration to user '${user}' [y/N] ? " -n1 user_conf
 
         [[ ${user_conf} ]] && echo
-        [[ ${user_conf} =~ ^(y|Y) ]] && users[${users_cpt}]="${user}" &&
+        [[ ${user_conf,,} == y ]] && users[${users_cpt}]="${user}" &&
             users_home[${users_cpt}]="${user_home}" && ((users_cpt+=1))
     fi
 done
 
-[[ ${clean_sl} =~ ^(y|Y) ]] && clean_sources "${debian_version}"
+[[ ${clean_sl,,} == y ]] && clean_sources "${debian_version}"
 
 sys_update
 
@@ -261,5 +280,5 @@ echo -e "${NFO} Execute '${YLO}vim +PlugInstall +qall${DEF}' on each profile to 
 read -rp "Reboot now and enjoy [Y/n] ? " -n1 reboot_now
 
 [[ ${reboot_now} ]] && echo
-[[ ${reboot_now} =~ ^(n|N) ]] || reboot
+[[ ${reboot_now,,} == n ]] || reboot
 
