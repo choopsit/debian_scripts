@@ -2,8 +2,9 @@
 
 set -e
 
-_description_="Deploy bash scripts to ~/.local/bin"
-_author_="Choops <choopsbd@gmail.com>"
+description="Deploy bash scripts to ~/.local/bin"
+# version: 0.1
+# author: Choops <choopsbd@gmai
 
 DEF="\e[0m"
 RED="\e[31m"
@@ -23,7 +24,7 @@ TESTING=bookworm
 usage(){
     errcode="$1"
 
-    [[ ${errcode} == 0 ]] && echo -e "${CYN}${_description_}${DEF}"
+    [[ ${errcode} == 0 ]] && echo -e "${CYN}${description}${DEF}"
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  '$(realpath "$0") [OPTION]'"
     echo -e "${CYN}Options${DEF}:"

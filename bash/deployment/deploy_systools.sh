@@ -2,8 +2,9 @@
 
 set -e
 
-_description_="Deploy 'systools' bash and python scripts to /usr/local/bin"
-_author_="Choops <choopsbd@gmail.com>"
+description="Deploy 'systools' bash and python scripts to /usr/local/bin"
+# vrsion: 0.1
+# author: Choops <choopsbd@gmail.com>
 
 DEF="\e[0m"
 RED="\e[31m"
@@ -20,7 +21,7 @@ NFO="${CYN}NFO${DEF}:"
 usage(){
     errcode="$1"
 
-    [[ ${errcode} == 0 ]] && echo -e "${CYN}${_description_}${DEF}"
+    [[ ${errcode} == 0 ]] && echo -e "${CYN}${description}${DEF}"
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  '$(realpath "$0") [OPTION]' ${YLO}as root or using 'sudo'${DEF}"
     echo -e "${CYN}Options${DEF}:"

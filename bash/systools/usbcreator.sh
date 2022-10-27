@@ -2,8 +2,9 @@
 
 set -e
 
-_description_="Create USB bootable key with debian stable on it"
-_author_="Choops <choopsbd@gmail.com>"
+description="Create USB bootable key with debian stable on it"
+# version: 0.1
+# author: Choops <choopsbd@gmail.com>
 
 DEF="\e[0m"
 RED="\e[31m"
@@ -24,7 +25,7 @@ GPARTED_V=1.4.-5
 usage(){
     errcode="$1"
 
-    [[ ${errcode} == 0 ]] && echo -e "${CYN}${_description_}${DEF}"
+    [[ ${errcode} == 0 ]] && echo -e "${CYN}${description}${DEF}"
 
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  '$(basename "$0") [OPTION] <DEVICE>' as root or using sudo"
