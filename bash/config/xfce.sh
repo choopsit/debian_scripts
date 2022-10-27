@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 description="Deploy my personal xfce configuration"
-author="Choops <choopsbd@gmail.com>"
+# version: 0.1
+# author: Choops <choopsbd@gmail.com>
 
 set -e
 
@@ -103,11 +104,17 @@ install_xfce(){
 
     cp "${pkg_lists}"/base "${my_pkgs}"
 
-    (lspci | grep -q NVIDIA) && echo "nvidia-driver" >> "${my_pkgs}"
+    add_i386=n
+
+    (lspci | grep -q NVIDIA) && echo "nvidia-driver" >> "${my_pkgs}" && add_i386=y
 
     [[ ${inst_kodi,,} == y ]] && echo "kodi" >> "${my_pkgs}"
 
+    [[ ${inst_steam,,} == y ]] && echo "steam" >> "${my_pkgs}" && add_i386=y
+
     [[ ${inst_virtmanager,,} == y ]] && echo "virt-manager" >> "${my_pkgs}"
+
+    [[ ${i386 == y} ]] && dpkg --add-architecture i386 && apt update
 
     xargs apt install -y < "${my_pkgs}"
 
@@ -142,18 +149,25 @@ sys_config(){
         copy_conf "${dotfile}" /root
     done
 
-    [[ ${allow_root_ssh,,} == y ]] &&
-        echo "PermitRootLogin yes" > "${ssh_conf}" && systemctl restart ssh
+    if [[ ${allow_root_ssh,,} == y ]]; then
+        ssh_conf=/etc/ssh/sshd_config
+        [[ -d "${ssh_conf}".d ]] || mkdir -p "${ssh_conf}".d
+        ssh_confroot="${ssh_conf}".d/allow_root.conf
+        echo "PermitRootLogin yes" > "${ssh_confroot}"
+        systemctl restart ssh
+    fi
 
     pulse_param="flat-volumes = no"
     pulse_conf=/etc/pulse/daemon.conf
     (grep -q ^"${pulse_param}" "${pulse_conf}") &&
-       sed -e "s/; ${pulse_param}/${pulse_param}/" -i "${pulse_conf}"
+        sed -e "s/; ${pulse_param}/${pulse_param}/" -i "${pulse_conf}"
 
     lightdm_conf=/usr/share/lightdm/lightdm.conf.d/10_my.conf
     [[ -f "${lightdm_conf}" ]] || lightdm_config "${lightdm_conf}"
 
-    # TODO: redshift config
+    redshift_conf=/etc/geoclue/geoclue.conf
+    (grep -qvs redshift "${redshift_conf}") &&
+        echo -e "\n[redshift]\nallowed=true\nsystem=false\nusers=" >> "${redshift_conf}"
 
     resources="${SCRIPT_PATH}"/2_resources
 
@@ -177,8 +191,8 @@ user_config(){
         copy_conf "${dotfile}" "${dest}"
     done
 
-    gitraw_url="https://raw.githubusercontent.co"m
-    vimplug_url="${gitraw_url}/junegunn/vim-plug/master/plug.vim"
+    gitraw_url=https://raw.githubusercontent.com
+    vimplug_url="${gitraw_url}"/junegunn/vim-plug/master/plug.vim
     curl -sfLo "${dest}"/.vim/autoload/plug.vim --create-dirs "${vimplug_url}"
     chmod 775 "${dest}"/.vim/autoload
 
@@ -217,27 +231,32 @@ my_dist="$(awk -F= '/^ID=/{print $2}' /etc/os-release)"
     echo -e "${ERR} $(basename "$0") works only on Debian" && exit 1
 
 debian_version="$(lsb_release -sc)"
-[[ ${debian_version} == "${TESTING}" ]] &&
-    grep -q '^deb .*sid' /etc/apt/sources.list && debian_version=sid
+if [[ ${debian_version} == "${TESTING}" ]]; then
+    for vers in sid unstable; do
+        grep -q "^deb .*${vers}" /etc/apt/sources.list && debian_version=sid
+    done
+fi
 
 read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
 [[ ${clean_sl} ]] && echo
 
-ssh_conf=/etc/ssh/sshd_config
-ssh_conf2=/etc/ssh/sshd_config.d/allow_root.conf
-
-(grep -q ^"PermitRootLogin yes" "${ssh_conf}") || [[ -f "${ssh_conf2}" ]] || 
+(grep -q ^"PermitRootLogin yes" "${ssh_conf}") || [[ -f "${ssh_confroot}" ]] ||
     read -rp "Allow 'root' on ssh [y/N] ? " -n1 allow_root_ssh
 
 [[ ${allow_root_ssh} ]] && echo
 
-(dpkg -l | grep -q ^"ii  kodi") ||
-    read -rp "Install Kodi (mediacenter) [y/N] ? " -n1 inst_kodi
+(dpkg -l | grep -q ^"ii  kodi ") ||
+    read -rp "Install Kodi [y/N] ? " -n1 inst_kodi
 
 [[ ${inst_kodi} ]] && echo
 
+(dpkg -l | grep -q ^"ii  steam") ||
+    read -rp "Install Steam [y/N] ? " -n1 inst_steam
+
+[[ ${inst_steam} ]] && echo
+
 (lspci | grep -qv paravirtual) && (lspci | grep -qiv virtualbox) &&
-    read -rp "Install Virtual Machine Manager (virt-manager) [y/N] ? " -n1 inst_virtmanager
+    read -rp "Install Virtual Machine Manager [y/N] ? " -n1 inst_virtmanager
 
 [[ ${inst_virtmanager} ]] && echo
 
