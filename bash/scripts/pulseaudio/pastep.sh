@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 description="Set puseaudio-plugin volume control step"
-author="Choops <choopsbd@gmail.com>"
+# version: 0.1
+# author: Choops <choopsbd@gmail.com>
 
 set -e
 

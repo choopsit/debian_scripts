@@ -2,8 +2,9 @@
 
 set -e
 
-_description_="Install/Update Kora icon-theme"
-_author_="Choops <choopsbd@gmail.com>"
+description="Install/Update Kora icon-theme"
+# version: 0.1
+# author: Choops <choopsbd@gmail.com>
 
 DEF="\e[0m"
 RED="\e[31m"
@@ -23,7 +24,7 @@ ICONS_DIR=/usr/share/icons
 usage(){
     errcode="$1"
 
-    [[ ${errcode} == 0 ]] && echo -e "${CYN}${_description_}${DEF}"
+    [[ ${errcode} == 0 ]] && echo -e "${CYN}${description}${DEF}"
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  $(basename "$0") [OPTION]"
     echo -e "${CYN}Options${DEF}:"
