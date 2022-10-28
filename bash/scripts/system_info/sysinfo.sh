@@ -57,7 +57,12 @@ sys_info(){
         VBoxManage list runningvms | awk -F'"' '{print $2}' &&
         echo
 
-    (dpkg -l | grep -q ^"ii  transmission-daemon") &&
+    (dpkg -l | grep -q "^ii  libvirt0") && (virsh list | grep -q running) &&
+        echo -e "${CYN}Virtual Machine(s) running${DEF}:" &&
+        virsh list | awk '/running/{print $2}' &&
+        echo
+
+    (dpkg -l | grep -q "^ii  transmission-daemon") &&
         [[ -e ~/.local/bin/tsm ]] && tsm -t
 
     pydf
