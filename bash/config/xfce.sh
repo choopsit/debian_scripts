@@ -150,9 +150,7 @@ sys_config(){
     done
 
     if [[ ${allow_root_ssh,,} == y ]]; then
-        ssh_conf=/etc/ssh/sshd_config
         [[ -d "${ssh_conf}".d ]] || mkdir -p "${ssh_conf}".d
-        ssh_confroot="${ssh_conf}".d/allow_root.conf
         echo "PermitRootLogin yes" > "${ssh_confroot}"
         systemctl restart ssh
     fi
@@ -240,6 +238,8 @@ fi
 read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
 [[ ${clean_sl} ]] && echo
 
+ssh_conf=/etc/ssh/sshd_config
+ssh_confroot="${ssh_conf}".d/allow_root.conf
 (grep -q ^"PermitRootLogin yes" "${ssh_conf}") || [[ -f "${ssh_confroot}" ]] ||
     read -rp "Allow 'root' on ssh [y/N] ? " -n1 allow_root_ssh
 
