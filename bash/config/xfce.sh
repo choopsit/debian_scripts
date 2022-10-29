@@ -103,8 +103,8 @@ install_xfce(){
     useless=/tmp/useless_pkgs
     pkg_lists="${SCRIPT_PATH}"/1_pkg
 
-    cp "${pkg_lists}"/base "${usefull}"
-    cp "${pkg_lists}"/useless "${useless}"
+    cp "${pkg_lists}"/xfce_base "${usefull}"
+    cp "${pkg_lists}"/xfce_useless "${useless}"
 
     add_i386=n
 
