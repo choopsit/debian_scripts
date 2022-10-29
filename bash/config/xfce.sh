@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 description="Deploy my personal xfce configuration"
-# version: 0.1
+# version: 0.2
 # author: Choops <choopsbd@gmail.com>
 
 set -e
@@ -99,26 +99,32 @@ sys_update(){
 
 install_xfce(){
     echo -e "${NFO} Installing new packages then removing useless ones..."
-    my_pkgs=/tmp/my_pkgs
+    usefull=/tmp/usefull_pkgs
+    useless=/tmp/useless_pkgs
     pkg_lists="${SCRIPT_PATH}"/1_pkg
 
-    cp "${pkg_lists}"/base "${my_pkgs}"
+    cp "${pkg_lists}"/base "${usefull}"
+    cp "${pkg_lists}"/useless "${useless}"
 
     add_i386=n
 
-    (lspci | grep -q NVIDIA) && echo "nvidia-driver" >> "${my_pkgs}" && add_i386=y
+    [[ ${debian_version} == sid ]] &&
+        echo -e "firefox\napt-listbugs\nneedrestart" >> "${usefull}" &&
+        echo -e "firefox-esr\nzutty" >> "${useless}"
 
-    [[ ${inst_kodi,,} == y ]] && echo "kodi" >> "${my_pkgs}"
+    (lspci | grep -q NVIDIA) && echo "nvidia-driver" >> "${usefull}" && add_i386=y
 
-    [[ ${inst_steam,,} == y ]] && echo "steam" >> "${my_pkgs}" && add_i386=y
+    [[ ${inst_kodi,,} == y ]] && echo "kodi" >> "${usefull}"
 
-    [[ ${inst_virtmanager,,} == y ]] && echo "virt-manager" >> "${my_pkgs}"
+    [[ ${inst_steam,,} == y ]] && echo "steam" >> "${usefull}" && add_i386=y
 
-    [[ ${i386 == y} ]] && dpkg --add-architecture i386 && apt update
+    [[ ${inst_virtmanager,,} == y ]] && echo "virt-manager" >> "${usefull}"
 
-    xargs apt install -y < "${my_pkgs}"
+    [[ ${add_i386} == y ]] && dpkg --add-architecture i386 && apt update
 
-    xargs apt purge -y < "${pkg_lists}"/useless
+    xargs apt install -y < "${usefull}"
+
+    xargs apt purge -y < "${useless}"
 
     apt autoremove --purge -y
 }
@@ -189,9 +195,9 @@ user_config(){
         copy_conf "${dotfile}" "${dest}"
     done
 
-    gitraw_url=https://raw.githubusercontent.com
-    vimplug_url="${gitraw_url}"/junegunn/vim-plug/master/plug.vim
-    curl -sfLo "${dest}"/.vim/autoload/plug.vim --create-dirs "${vimplug_url}"
+    curl -sSfLo "${dest}"/.vim/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
     chmod 775 "${dest}"/.vim/autoload
 
     autostart_dir="${dest}"/.config/autostart
@@ -212,6 +218,8 @@ add_grp(){
 
     [[ ${add_user_to_grp} ]] && echo
     [[ ${add_user_to_grp,,} == y ]] && adduser "${user}" "${group}"
+
+    echo -e "${NFO} '${user}' added to '${group}'"
 }
 
 
@@ -245,20 +253,33 @@ ssh_confroot="${ssh_conf}".d/allow_root.conf
 
 [[ ${allow_root_ssh} ]] && echo
 
-(dpkg -l | grep -q ^"ii  kodi ") ||
+(dpkg -l | grep -q "^ii  kodi ") ||
     read -rp "Install Kodi [y/N] ? " -n1 inst_kodi
 
 [[ ${inst_kodi} ]] && echo
 
-(dpkg -l | grep -q ^"ii  steam") ||
+(dpkg -l | grep -q "^ii  steam") ||
     read -rp "Install Steam [y/N] ? " -n1 inst_steam
 
 [[ ${inst_steam} ]] && echo
 
-(lspci | grep -qv paravirtual) && (lspci | grep -qiv virtualbox) &&
+(dpkg -l | grep -q "^ii  virt-manager") && (lspci | grep -qv QEMU) &&
+    (dpkg -l | grep -q "^ii  virtualbox ") && (lspci | grep -qiv virtualbox) &&
     read -rp "Install Virtual Machine Manager [y/N] ? " -n1 inst_virtmanager
 
 [[ ${inst_virtmanager} ]] && echo
+
+[[ ${clean_sl,,} == y ]] && clean_sources "${debian_version}"
+
+sys_update
+
+install_xfce
+
+sys_config
+
+user_config /etc/skel
+
+echo -e "${OK} Custom XFCE installed"
 
 users_cpt=0
 
@@ -277,23 +298,13 @@ for user_home in /home/*; do
     fi
 done
 
-[[ ${clean_sl,,} == y ]] && clean_sources "${debian_version}"
-
-sys_update
-
-install_xfce
-
-sys_config
-
-user_config /etc/skel
-
 for i in $(seq 0 $((users_cpt-1))); do
     user_config "${users_home[${i}]}"
     user_group="$(awk -F: '/^'"${users[${i}]}"':/{print $5}' /etc/passwd)"
     chown -R "${users[${i}]}":"${user_group//,}" "${users_home[${i}]}"
 done
 
-echo -e "${NFO} Custom XFCE configuration installed"
+echo -e "${OK} Custom XFCE installed and configured"
 echo -e "${NFO} Execute '${YLO}vim +PlugInstall +qall${DEF}' on each profile to finish vim configuration"
 
 read -rp "Reboot now and enjoy [Y/n] ? " -n1 reboot_now
