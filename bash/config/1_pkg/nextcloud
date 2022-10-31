@@ -6,7 +6,9 @@ p7zip-full
 tree
 htop
 nginx
-mariadb-server
+certbot
+python3-certbot-nginx
+postgresql postgresql-contrib
 php
 php-gd
 php-curl
