@@ -5,6 +5,7 @@ ssh
 p7zip-full
 tree
 htop
+nginx
 mariadb-server
 php
 php-gd
@@ -17,4 +18,3 @@ php-mbstring
 php-intl
 php-json
 php-fpm
-nginx

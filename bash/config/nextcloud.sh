@@ -96,8 +96,7 @@ sys_update(){
     apt full-upgrade -y
 }
 
-
-install_nextcloud(){
+install_prerequisites(){
     echo -e "${NFO} Installing new packages..."
     usefull=/tmp/usefull_pkgs
     pkg_lists="${SCRIPT_PATH}"/1_pkg
@@ -120,10 +119,6 @@ copy_conf(){
     fi
 }
 
-configure_nextcloud(){
-    # TODO: define nextcloud configuration
-}
-
 sys_config(){
     echo -e "${NFO} Applying custom system configuration..."
 
@@ -136,6 +131,107 @@ sys_config(){
         echo "PermitRootLogin yes" > "${ssh_confroot}"
         systemctl restart ssh
     fi
+}
+
+ask_nc_user(){
+    read -rp "Nextcloud user ? " nc_user
+    [[ ! ${nc_user} ]] && echo -e "${ERR} Need a username" && ask_nc_user
+    echo
+}
+
+ask_nc_pass(){
+    # TODO: make typing password invisible
+
+    read -rp "Nextcloud user's password ? " nc_pass
+    [[ ! ${nc_pass} ]] && echo -e "${ERR} Need a password" && ask_nc_pass
+    echo
+
+    # TODO: test password strength
+
+    read -rp "Confirm Nextcloud user's password: " nc_pass2
+    [[ ${nc_pass2} ]] && echo
+
+    [[ "${nc_pass2}" != "${nc_pass}" ]] &&
+        echo -e "${ERR} Different from defined password" && ask_nc_pass
+
+    echo
+}
+
+configure_database(){
+    echo -e "${INFO} Configuring database..."
+
+    mysql_secure_installation
+
+    ask_nc_user
+    ask_nc_pass
+
+    mysql -u root -p -e "create database nextcloud;"
+    mysql -u root -p -e "create user '${nc_user}'@'%' identified by '${nc_pass}';"
+    mysql -u root -p -e "grant all privileges on nextcloud.* to '${nc_user}'@'%';"
+}
+
+nginx_nextcloud_conf(){
+    cat <<EOF > /etc/nginx/conf.d/nextcloud.conf
+server {
+    listen 80;
+
+    server_name $(hostname -f);
+    root /var/www/nextcloud;
+    index index.php;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$args;
+    }
+
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+        expires max;
+        log_not_found off;
+    }
+
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+    }
+
+    location ~ \.php$ {
+        include /etc/nginx/fastcgi_params;
+        fastcgi_pass unix:/run/php/php-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
+}
+EOF
+}
+
+install_nextcloud(){
+    systemctl enable mariadb
+    systemctl enable nginx
+
+    configure_database
+
+    wget https://download.nextcloud.com/server/releases/latest.zip -P /tmp
+    
+    pushd /tmp
+    7z x latest.zip
+    cp -r nextcloud /var/www/
+    popd >/dev/null
+    chmod -R 755 /var/www/nextcloud
+
+    mkdir -p /var/nextcloud/data
+    chmod -R 755 /var/nextcloud
+
+    nginx_nextcloud_conf
+
+    systemctl restart php7.4-fpm nginx
+
+    rm -f /tmp/latest.zip
+    rm -rf /tmp/nextcloud
 }
 
 
@@ -173,18 +269,13 @@ ssh_confroot="${ssh_conf}".d/allow_root.conf
 
 sys_update
 
-install_nextcloud
+install_prerequisites
 
 sys_config
 
+install_nextcloud
+
 echo -e "${OK} Nextcloud installed"
-
-configure_nextcloud
-
-echo -e "${OK} Nextcloud installed and configured"
-
-read -rp "Reboot now and enjoy [Y/n] ? " -n1 reboot_now
-
-[[ ${reboot_now} ]] && echo
-[[ ${reboot_now,,} == n ]] || reboot
+echo -e "${NFO} Connect 'http://$(hostname -f)/nextcloud' to finish configuration"
+echo -e "${YLO}Enjoy !${DEF}"
 
