@@ -96,4 +96,4 @@ sys_info
 
 gits="${HOME}/Work/git"
 [[ -e ~/.local/bin/statgitrepos ]] && [[ -d "${gits}" ]] &&
-    echo -e "${CYN}Git repos status${DEF}:" && statgitrepos
+    echo -e "${CYN}Git repo(s) status${DEF}:" && statgitrepos
