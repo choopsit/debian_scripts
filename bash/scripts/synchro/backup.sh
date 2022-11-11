@@ -2,9 +2,9 @@
 
 set -e
 
-description="Backup user config and more in /backup"
-# version: 0.1
-# author="Choops <choopsbd@gmail.com>
+description="Backup user config and more in /volumes/backup"
+# version: 0.2
+# author: "Choops <choopsbd@gmail.com>
 
 DEF="\e[0m"
 RED="\e[31m"
@@ -18,7 +18,7 @@ OK="${GRN}OK${DEF}:"
 WRN="${YLO}WRN${DEF}:"
 NFO="${CYN}NFO${DEF}:"
 
-DEST_ROOT=/backup
+DEST_ROOT=/volumes/backup
 DEST_BKP="${DEST_ROOT}/$(date +"%y%m")_${USER}-on-$(hostname -s)"
 
 
@@ -71,7 +71,7 @@ home_backup(){
 
 sysconf_backup(){
     echo -e "${NFO} Backuping ${YLO}system configurations${DEF} to '${YLO}${DEST_BKP}/${DEF}'..."
-    
+
     elements_to_backup=("/etc/apt/sources.list" "/etc/apt/sources.list.d" \
         "/etc/skel" "/etc/fstab" "/etc/exports" "/etc/pulse/daemon.conf" \
         "/etc/ssh/sshd_config" "/etc/ssh/sshd_config.d" \
@@ -83,6 +83,14 @@ sysconf_backup(){
     for element in "${elements_to_backup[@]}"; do
         rsync_bkp "${element}"
     done
+}
+
+spec_backup(){
+    src_folder="$1"
+    if [[ -d "${src_folder}" ]]; then
+        echo -e "${NFO} Backuping '${YLO}${src_folder}${DEF}' to '${YLO}${DEST_BKP}/${DEF}'..."
+        rsync_bkp "${src_folder}"
+    fi
 }
 
 
@@ -107,9 +115,10 @@ home_backup
 
 sysconf_backup
 
-[[ $(hostname) == mrchat ]] &&
-    music=/volumes/speedix/Music &&
-    echo -e "${NFO} Backuping '${YLO}${music}${DEF}' to '${YLO}${DEST_BKP}/${DEF}'..." &&
-    rsync_bkp "${music}"
+if [[ $(hostname) == mrchat ]]; then
+    for spec_src in "potatoe/Music" "speedix/Work"; do
+        spec_backup "/volumes/${spec_src}"
+    done
+fi
 
 echo

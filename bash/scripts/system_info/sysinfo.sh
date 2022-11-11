@@ -3,7 +3,7 @@
 #set -e
 
 description="Display system informations"
-# version: 0.1
+# version: 0.2
 # author: Choops <choopsbd@gmail.com>
 
 DEF="\e[0m"
@@ -82,13 +82,14 @@ fi
 
 [[ ${do_upgrade} ]] && sys_upgrade
 
+bkp_dest=/volumes/backup
 if [[ ${do_backup} ]] && [[ -e ~/.local/bin/backup ]] &&
     (dpkg -l | grep -q ^"ii  rsync"); then
     echo -e "${CYN}Backup${DEF}:"
-    if (mount | grep -q " /backup "); then
+    if (mount | grep -q " ${bkp_dest} "); then
         backup
     else
-        echo -e "${ERR} /backup not mounted\n"
+        echo -e "${ERR} ${bkp_dest} not mounted\n"
     fi
 fi
 
