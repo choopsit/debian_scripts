@@ -82,8 +82,8 @@ install_base(){
     apt full-upgrade
 
     rm -f /tmp/pkgs
-    for pkp in vim git ssh curl tree htop; do
-        (dpkg -l | grep "^ii  ${pkg} ") && echo "${pkg}" >>/tmp/pkgs
+    for pkg in vim git ssh curl tree htop; do
+        (dpkg -l | grep -q "^ii  ${pkg} ") || echo "${pkg}" >>/tmp/pkgs
     done
 
     if [[ -f /tmp/pkgs ]]; then
@@ -125,6 +125,8 @@ EOF
 }
 
 set_network(){
+    echo -e "${NFO} Editing '/etc/network/interfaces'..."
+
     vim /etc/network/interfaces
 }
 
