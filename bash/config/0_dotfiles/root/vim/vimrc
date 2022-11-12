@@ -1,13 +1,14 @@
 call plug#begin('~/.vim/plugged')
 Plug 'morhetz/gruvbox'
+"Plug 'arcticicestudio/nord-vim'
 Plug 'nanotech/jellybeans.vim'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'jiangmiao/auto-pairs'
 Plug 'tpope/vim-fugitive'
 Plug 'airblade/vim-gitgutter'
-Plug 'saltstack/salt-vim'
-Plug 'Glench/Vim-Jinja2-Syntax'
+"Plug 'saltstack/salt-vim'
+"Plug 'Glench/Vim-Jinja2-Syntax'
 call plug#end()
 
 set viminfo+=n~/.vim/viminfo
@@ -73,8 +74,10 @@ map <C-h> :sp<CR>
 map <C-s> :vsp<CR>
 
 " ----- Plugs settings -----
-"silent! colorscheme gruvbox
 set background=dark
+"silent! colorscheme gruvbox
+"colorscheme nord
+"colorscheme jellybeans
 hi Normal ctermbg=none
 let g:airline#extensions#tabline#enabled = 1
 let g:airline_theme='jellybeans'
