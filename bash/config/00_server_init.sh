@@ -130,7 +130,7 @@ set_network(){
     vim /etc/network/interfaces
 }
 
-allow_rot_on_ssh(){
+allow_root_on_ssh(){
     [[ -d "${ssh_conf}".d ]] || mkdir -p "${ssh_conf}".d
     echo "PermitRootLogin yes" > "${ssh_confroot}"
     systemctl restart ssh
@@ -173,8 +173,8 @@ read -rp "Configure network interface(s) [y/N] ? " -n1 conf_net
 
 ssh_conf=/etc/ssh/sshd_config
 ssh_confroot="${ssh_conf}".d/allow_root.conf
-(grep -q ^"PermitRootLogin yes" "${ssh_conf}") || [[ -f "${ssh_confroot}" ]] ||
-    read -rp "Allow root on ssh [y/N] ? " -n1 root_ssh
+{ [[ -f "${ssh_conf}" ]] && (grep -q ^"PermitRootLogin yes" "${ssh_conf}") ; } ||
+    [[ -f "${ssh_confroot}" ]] || read -rp "Allow root on ssh [y/N] ? " -n1 root_ssh
 
 [[ ${root_ssh} ]] && echo
 
