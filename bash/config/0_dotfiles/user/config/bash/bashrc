@@ -86,28 +86,5 @@ if ! shopt -oq posix; then
   fi
 fi
 
-## Fix tilix/vte issue
-#if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
-#    source /etc/profile.d/vte.sh
-#fi
-
-# Rename Terminator Window/Tab
-set_title(){
-    echo -ne "\e]0;$*\7"
-}
-
-if [ -n "$TERMINATOR_DBUS_NAME" ]; then
-    set_title
-fi
-
-#SSHEXEC=$(which ssh)
-SSHEXEC=/usr/bin/ssh
-ssh() {
-    if [ -n "$TERMINATOR_DBUS_NAME" ]; then
-        echo -en "\e]0;$*\a"
-        command ssh "$@"
-        set_title
-    else
-        $SSHEXEC $@
-    fi
-}
+# Make title follow users changes and ssh connexions
+trap 'echo -ne "\033]2;$(history 1 | sed "s/^[ ]*[0-9]*[ ]*//g")\007"' DEBUG
