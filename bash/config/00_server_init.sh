@@ -192,7 +192,7 @@ if [[ ${debian_version} == "${TESTING}" ]]; then
         grep -q "^deb .*${vers}" /etc/apt/sources.list && debian_version=sid
     done
 fi
-if [[ ${debian_version} != "${5TABLE}" ]]; then
+if [[ ${debian_version} != "${STABLE}" ]]; then
     echo -e "${WRN} You are not using Debian stable. Script can fail."
     read -rp "Continue [y/N] ? " -n1 lets_go
     [[ ${lets_go} ]] && echo
