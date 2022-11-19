@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 description="Debian server base configuration"
-# version: 0.1
+# version: 0.2
 # author: Choops <choopsbd@gmail.com>
 
 set -e
@@ -20,13 +20,12 @@ NFO="${CYN}NFO${DEF}:"
 SCRIPT_PATH="$(dirname "$(realpath "$0")")"
 
 STABLE=bullseye
-
+TESTING=bookworm
 
 usage(){
     errcode="$1"
 
-    [[ ${errcode} == 0 ]] && echo -e "${CYN}${description}${DEF}" &&
-        echo -e "${WRN} It's a combination of personal choices. Use it at your own risk."
+    [[ ${errcode} == 0 ]] && echo -e "${CYN}${description}${DEF}"
 
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  ./$(basename "$0") [OPTION]"
@@ -38,27 +37,7 @@ usage(){
     exit "${errcode}"
 }
 
-renew_hostname(){
-    echo -e "${NFO} Renaming..."
-
-    current_hostname="$(hostname -s)"
-    current_fqdn="$(hostname -f)"
-
-    if [[ ${new_domain} ]]; then
-        host_line="127.0.1.1\t${new_hostname}.${new_domain}\t${new_hostname}"
-    else
-        host_line="127.0.1.1\t${new_hostname}"
-    fi
-
-    sed "s/^127.0.1.1.*${current_hostname}/${host_line}/" -i /etc/hosts
-    echo "${new_hostname}" >/etc/hostname
-
-    hostname "${new_hostname}"
-}
-
-clean_sources(){
-    echo -e "${NFO} Cleaning /etc/apt/sources.list..."
-
+stable_sources(){
     cat <<EOF > /etc/apt/sources.list
 # ${STABLE}
 deb http://deb.debian.org/debian/ ${STABLE} main contrib non-free
@@ -75,35 +54,72 @@ deb http://deb.debian.org/debian/ ${STABLE}-backports main contrib non-free
 EOF
 }
 
-install_base(){
-    echo -e "${NFO} Updating and installing base packages..."
+testing_sources(){
+    cat <<EOF > /etc/apt/sources.list
+# testing
+deb http://deb.debian.org/debian/ testing main contrib non-free
+#deb-src http://deb.debian.org/debian/ testing main contrib non-free
 
-    apt update
-    apt full-upgrade
+# testing security
+deb http://deb.debian.org/debian-security/ testing-security/updates main contrib non-free
+#deb-src http://deb.debian.org/debian-security/ testing-security/updates main contrib non-free
+EOF
+}
 
-    rm -f /tmp/pkgs
-    for pkg in vim git ssh curl tree htop; do
-        (dpkg -l | grep -q "^ii  ${pkg} ") || echo "${pkg}" >>/tmp/pkgs
-    done
+sid_sources(){
+    cat <<EOF > /etc/apt/sources.list
+# sid
+deb http://deb.debian.org/debian/ sid main contrib non-free
+#deb-src http://deb.debian.org/debian/ sid main contrib non-free
+EOF
+}
 
-    if [[ -f /tmp/pkgs ]]; then
-        xargs apt install -y </tmp/pkgs
+clean_sources(){
+    version="$1"
+    echo -e "${NFO} Cleaning sources.list..."
+    if [[ ${version} == sid ]]; then
+        sid_sources
+    elif [[ ${version} == "${STABLE}" ]]; then
+        stable_sources
+    elif [[ ${version} == "${TESTING}" ]]; then
+        testing_sources
+    else
+        echo -e "${ERR} Unsupported version '${version}'"
+        exit 1
     fi
 }
 
-root_conf(){
-    echo -e "${NFO} Deploying 'root' dotfiles..."
+sys_update(){
+    echo -e "${NFO} Upgrading system..."
+    apt update || { echo -e "${RED}WTF !!!${DEF}" && exit 1; }
+    apt upgrade -y
+    apt full-upgrade -y
+}
 
-    for conf in "${SCRIPT_PATH}"/0_dotfiles/root/*; do
-        cp -r "${conf}" /root/."$(basename "${conf}")"
-    done
+install_prerequisites(){
+    echo -e "${NFO} Installing new packages..."
+    usefull=/tmp/usefull_pkgs
+    pkg_lists="${SCRIPT_PATH}"/1_pkg
 
-    echo -e "${NFO} Loading vim plugins..."
+    cp "${pkg_lists}"/srv_base "${usefull}"
 
-    curl -sSfLo /root/.vim/autoload/plug.vim --create-dirs \
-        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+    xargs apt install -y < "${usefull}"
 
-    vim +PlugInstall +qall
+    apt autoremove --purge -y
+}
+
+copy_conf(){
+    src="$1"
+    dst="$2"
+
+    if [[ -f "${src}" ]]; then
+        cp "${src}" "${dst}"/."$(basename "${src}")"
+    elif [[ -d "${src}" ]]; then
+        mkdir -p  "${dst}"/."$(basename "${src}")" &&
+            cp -r "${src}"/* "${dst}"/."$(basename "${src}")"/
+
+        [[ $(basename "${src}") == vim ]] && vim +PlugInstall +qall
+    fi
 }
 
 disable_ipv6(){
@@ -130,13 +146,31 @@ set_network(){
     vim /etc/network/interfaces
 }
 
-allow_root_on_ssh(){
-    [[ -d "${ssh_conf}".d ]] || mkdir -p "${ssh_conf}".d
-    echo "PermitRootLogin yes" > "${ssh_confroot}"
-    systemctl restart ssh
+sys_config(){
+    echo -e "${NFO} Applying custom system configuration..."
+
+    for dotfile in "${SCRIPT_PATH}"/0_dotfiles/root/*; do
+        copy_conf "${dotfile}" /root
+    done
+
+    curl -sSfLo /root/.vim/autoload/plug.vim --create-dirs \
+        https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+
+    vim +PlugInstall +qall
+
+    if [[ ${root_ssh,,} == y ]]; then
+        mkdir -p "${ssh_conf}".d
+        echo "PermitRootLogin yes" > "${ssh_conf}".d/allow_root.conf
+        systemctl restart ssh
+    fi
+
+    [[ ${new_hostname} ]] && renew_hostname
+    [[ ${no_ipv6,,} == y ]] && disable_ipv6
+    [[ ${conf_net,,} == y ]] && set_network
 }
 
 
+# Arguments check
 [[ $2 ]] && echo -e "${ERR} Too many arguments" && usage 1
 if [[ $1 =~ ^-(h|-help)$ ]]; then
     usage 0
@@ -144,18 +178,28 @@ elif [[ $1 ]]; then
     echo -e "${ERR} Bad argument" && usage 1
 fi
 
+# Privileges check
+[[ $(whoami) != root ]] && echo -e "${ERR} Need higher privileges" && exit 1
 
-[[ $(whoami) != root ]] && echo -e "${ERR} Need higher privileges." && exit 1
-
+# Distro check
 my_dist="$(awk -F= '/^ID=/{print $2}' /etc/os-release)"
 [[ ${my_dist} != debian ]] &&
-    echo -e "${ERR} '$(basename "$0")' works only on Debian." && exit 1
+    echo -e "${ERR} $(basename "$0") works only on Debian" && exit 1
 
 debian_version="$(lsb_release -sc)"
-[[ ${debian_version} != "${STABLE}" ]] &&
-    echo -e "${ERR} '$(basename "$0")' works only on Debian ${STABLE} (stable)." && exit 1
+if [[ ${debian_version} == "${TESTING}" ]]; then
+    for vers in sid unstable; do
+        grep -q "^deb .*${vers}" /etc/apt/sources.list && debian_version=sid
+    done
+fi
+if [[ ${debian_version} != "${5TABLE}" ]]; then
+    echo -e "${WRN} You are not using Debian stable. Script can fail."
+    read -rp "Continue [y/N] ? " -n1 lets_go
+    [[ ${lets_go} ]] && echo
+    [[ ${lets_go,,} != y ]] && exit 0
+fi
 
-
+# Questioning
 read -rp "Change hostname [y/N] ? " -n1 chg_hostname
 [[ ${chg_hostname} ]] && echo
 if [[ ${chg_hostname,,} == y ]]; then
@@ -163,6 +207,9 @@ if [[ ${chg_hostname,,} == y ]]; then
     [[ ${new_hostname} ]] && read -rp "New domain (optional): " new_domain
     [[ -z ${new_hostname} ]] && echo -e "${NFO} No hostname given. Keeping current one."
 fi
+
+read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
+[[ ${clean_sl} ]] && echo
 
 noipv6_conf=/etc/sysctl.d/10-noipv6.conf
 [[ -f "${noipv6_conf}" ]] || read -rp "Disable ipv6 [y/N] ? " -n1 no_ipv6
@@ -172,26 +219,23 @@ read -rp "Configure network interface(s) [y/N] ? " -n1 conf_net
 [[ ${conf_net} ]] && echo
 
 ssh_conf=/etc/ssh/sshd_config
-ssh_confroot="${ssh_conf}".d/allow_root.conf
-{ [[ -f "${ssh_conf}" ]] && (grep -q ^"PermitRootLogin yes" "${ssh_conf}") ; } ||
-    [[ -f "${ssh_confroot}" ]] || read -rp "Allow root on ssh [y/N] ? " -n1 root_ssh
-
+if [[ -f "${ssh_conf}" ]]; then
+    (grep -qv ^"PermitRootLogin yes" "${ssh_conf}") ||
+        (grep -qv ^"PermitRootLogin yes" "${ssh_conf}".d/*) ||
+        read -rp "Allow 'root' on ssh [y/N] ? " -n1 root_ssh
+fi
 [[ ${root_ssh} ]] && echo
 
+# Installation and configuration
+[[ ${clean_sl,,} == y ]] && clean_sources "${debian_version}"
+sys_update
+install_prerequisites
+sys_config
 
-clean_sources
-install_base
-
-root_conf
-
-
-[[ ${new_hostname} ]] && renew_hostname
-[[ ${no_ipv6,,} == y ]] && disable_ipv6
-[[ ${conf_net,,} == y ]] && set_network
-[[ ${root_ssh,,} == y ]] && allow_root_on_ssh
-
-
+# Exit
 echo -e "${NFO} Base configuration deployed"
 read -rp "Reboot now [y/N] ? " -n1 reboot_now
 [[ ${reboot_now} ]] && echo
 [[ ${reboot_now,,} == y ]] && reboot
+
+echo -e "${GRN}Enjoy !${DEF}"

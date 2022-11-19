@@ -130,16 +130,19 @@ install_xfce(){
 }
 
 copy_conf(){
-    if [[ -f "$1" ]]; then
-        cp "$1" "$2"/."$(basename "$1")"
-    elif [[ -d "$1" ]]; then
-        mkdir -p  "$2"/."$(basename "$1")" &&
-            cp -r "$1"/* "$2"/."$(basename "$1")"/
+    src="$1"
+    dst="$2"
+
+    if [[ -f "${src}" ]]; then
+        cp "${src}" "${dst}"/."$(basename "${src}")"
+    elif [[ -d "${src}" ]]; then
+        mkdir -p  "${dst}"/."$(basename "${src}")" &&
+            cp -r "${src}"/* "${dst}"/."$(basename "${src}")"/
     fi
 }
 
 lightdm_config(){
-    cat <<EOF > "$1"
+    cat <<EOF > "${lightdm_conf}"
 [Seat:*]
 greeter-hide-users=false
 user-session=xfce
@@ -156,8 +159,8 @@ sys_config(){
     done
 
     if [[ ${allow_root_ssh,,} == y ]]; then
-        [[ -d "${ssh_conf}".d ]] || mkdir -p "${ssh_conf}".d
-        echo "PermitRootLogin yes" > "${ssh_confroot}"
+        mkdir -p "${ssh_conf}".d
+        echo "PermitRootLogin yes" > "${ssh_conf}".d/allow_root.conf
         systemctl restart ssh
     fi
 
@@ -167,7 +170,7 @@ sys_config(){
         sed -e "s/; ${pulse_param}/${pulse_param}/" -i "${pulse_conf}"
 
     lightdm_conf=/usr/share/lightdm/lightdm.conf.d/10_my.conf
-    [[ -f "${lightdm_conf}" ]] || lightdm_config "${lightdm_conf}"
+    [[ -f "${lightdm_conf}" ]] || lightdm_config
 
     redshift_conf=/etc/geoclue/geoclue.conf
     (grep -qvs redshift "${redshift_conf}") &&
@@ -246,10 +249,13 @@ fi
 read -rp "Clean sources.list [y/N] ? " -n1 clean_sl
 [[ ${clean_sl} ]] && echo
 
+
 ssh_conf=/etc/ssh/sshd_config
-ssh_confroot="${ssh_conf}".d/allow_root.conf
-(grep -q ^"PermitRootLogin yes" "${ssh_conf}") || [[ -f "${ssh_confroot}" ]] ||
-    read -rp "Allow 'root' on ssh [y/N] ? " -n1 allow_root_ssh
+if [[ -f "${ssh_conf}" ]]; then
+    (grep -qv ^"PermitRootLogin yes" "${ssh_conf}") ||
+        (grep -qv ^"PermitRootLogin yes" "${ssh_conf}".d/*) ||
+        read -rp "Allow 'root' on ssh [y/N] ? " -n1 allow_root_ssh
+fi
 
 [[ ${allow_root_ssh} ]] && echo
 
@@ -311,4 +317,3 @@ read -rp "Reboot now and enjoy [Y/n] ? " -n1 reboot_now
 
 [[ ${reboot_now} ]] && echo
 [[ ${reboot_now,,} == n ]] || reboot
-
