@@ -194,7 +194,7 @@ user_config(){
 
     echo -e "${NFO} Applying custom configuration for ${conf_user}..."
 
-    for dotfile in "${SCRIPT_PATH}"/0_dotfiles/user/*; do
+    for dotfile in "${SCRIPT_PATH}"/0_dotfiles/xfce_user/*; do
         copy_conf "${dotfile}" "${dest}"
     done
 
