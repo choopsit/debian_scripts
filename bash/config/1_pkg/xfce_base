@@ -6,7 +6,6 @@ rsync
 p7zip-full
 tree
 htop
-gparted
 linux-headers-amd64
 task-desktop
 task-xfce-desktop
@@ -27,11 +26,10 @@ system-config-printer
 gnome-calculator
 evince
 gimp
-simple-scan
 file-roller
 gthumb
-lollypop
-easytag
+rhythmbox
+rhythmbox-plugin-alternative-toolbar
 mpv
 transmission-gtk
 gnome-2048
