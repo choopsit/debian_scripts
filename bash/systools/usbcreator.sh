@@ -87,7 +87,7 @@ burn_support(){
 }
 
 
-[[ $2 =~ ^-(h|-help)$ ]] && usage 0
+[[ $1 =~ ^-(h|-help)$ ]] && usage 0
 
 [[ $(whoami) != root ]] && echo -e "${ERR} Need higher privileges" && usage 1
 
