@@ -7,6 +7,7 @@ import re
 
 __description__ = "Graphical filesystems usage"
 __author__ = "Choops <choopsbd@gmail.com>"
+__version__ = 0.1
 
 DEF = "\33[0m"
 RED = "\33[31m"
@@ -64,7 +65,7 @@ def dim_fsunit(vol_total):
 
 
 def color_line(mount_point):
-    fs_color = "\33[0m"
+    fs_color = "\33[37m"
 
     if mount_point[1] in ["nfs", "cifs"]:
         fs_color = "\33[34m"
@@ -100,20 +101,18 @@ def draw_fs(mount_point):
     used_u = used / factor
     free_u = total_u - used_u
 
-    #tline = f"-{CYN}{mount_point[2]}{DEF}:\n"
-    tline = f"-{YLO}{mount_point[2]}{DEF}:\n"
-    tline += f"  {CYN}type{DEF}: {ctxt}{mount_point[1]}\t"
-    tline += f"{CYN}mounted on{DEF}: {ctxt}{mount_point[0]}{DEF}"
+    tline = f"-{CYN}{mount_point[2]}{DEF}[{ctxt}{mount_point[1]}{DEF}] "
+    tline += f"mounted on {ctxt}{mount_point[0]}{DEF}"
 
-    repart = f"{used_u:.1f}/{total_u:.1f}{unit}"
-    lensep = 13 - len(repart)
+    repart = f"{used_u:.1f}{DEF}/{ctxt}{total_u:.1f}{DEF}{unit}"
+    lensep = 26 - len(repart)
     sep = " " * lensep
 
     gline = f"  [{cfs}{used_gr}{cn}{free_gr}{DEF}]{sepg}{cfs}{used_prop}{DEF}%"
     gline += f" {sep}{ctxt}{repart}{DEF}"
 
-    freesp= f"{free_u:.1f}{unit}"
-    lenfsep = 8 - len(freesp)
+    freesp= f"{free_u:.1f}{DEF}{unit}"
+    lenfsep = 13 - len(freesp)
     fsep = " " * lenfsep
 
     gline += f" -{fsep}{ctxt}{freesp} free{DEF}"
