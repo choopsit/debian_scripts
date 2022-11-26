@@ -101,7 +101,7 @@ def draw_fs(mount_point):
     used_u = used / factor
     free_u = total_u - used_u
 
-    tline = f"-{CYN}{mount_point[2]}{DEF}[{ctxt}{mount_point[1]}{DEF}] "
+    tline = f"-{ctxt}{mount_point[2]}{DEF}[{ctxt}{mount_point[1]}{DEF}] "
     tline += f"mounted on {ctxt}{mount_point[0]}{DEF}"
 
     repart = f"{used_u:.1f}{DEF}/{ctxt}{total_u:.1f}{DEF}{unit}"
