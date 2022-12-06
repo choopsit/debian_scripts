@@ -2,7 +2,7 @@
 
 set -e
 
-description="Install/Update WhiteSur gtk-theme"
+description="Install/Update WhiteSur icon-theme"
 # version: 0.1
 # author: Choops <choopsbd@gmail.com>
 
@@ -18,10 +18,10 @@ OK="${GRN}OK${DEF}:"
 WRN="${YLO}WRN${DEF}:"
 NFO="${CYN}NFO${DEF}:"
 
-THEMES_DIR=/usr/share/themes
+THEMES_DIR=/usr/share/icons
 
-gtk_theme=WhiteSur-gtk-theme
-git_url="https://github.com/vinceliuice/WhiteSur-gtk-theme.git"
+icon_theme=WhiteSur-icon-theme
+git_url="https://github.com/vinceliuice/WhiteSur-icon-theme.git"
 
 
 usage(){
@@ -31,38 +31,38 @@ usage(){
     echo -e "${CYN}Usage${DEF}:"
     echo -e "  $(basename "$0") [OPTION]"
     echo -e "${CYN}Options${DEF}:"
-    echo -e "${NFO} No option => install ${gtk_theme}"
+    echo -e "${NFO} No option => install ${icon_theme}"
     echo -e "  -h,--help:   Print this help"
-    echo -e "  -r,--remove: Remove ${gtk_theme}"
+    echo -e "  -r,--remove: Remove ${icon_theme}"
     echo
 
     exit "${errcode}"
 }
 
-bye_gtk(){
-    echo -e "${NFO} Removing ${gtk_theme}..."
+bye_icon(){
+    echo -e "${NFO} Removing ${icon_theme}..."
     sudo rm -rf "${THEMES_DIR}"/WhiteSur*
 }
 
-byebye_gtk(){
-    [[ ! -d "${THEMES_DIR}" ]] && echo -e "${NFO} ${gtk_theme} is not installed\n" && exit 0
-    bye_gtk
+byebye_icon(){
+    [[ ! -d "${THEMES_DIR}" ]] && echo -e "${NFO} ${icon_theme} is not installed\n" && exit 0
+    bye_icon
     echo
     exit 0
 }
 
-hello_gtk(){
-    echo -e "${NFO} Installing/Updating ${gtk_theme}..."
+hello_icon(){
+    echo -e "${NFO} Installing/Updating ${icon_theme}..."
     pkg_list=/tmp/pkglist
     rm -f "${pkg_list}"
     for pkg in sassc optipng libglib2.0-dev-bin; do
         (dpkg -l | grep -q "^ii  ${pkg} ") || echo "${pkg}" >>"${pkg_list}"
     done
     [[ -f "${pkg_list}" ]] && sudo xargs apt install -y < "${pkg_list}"
-    sudo rm -rf /tmp/"${gtk_theme}"
-    git clone "${git_url}" /tmp/"${gtk_theme}"
-    sudo /tmp/"${gtk_theme}"/install.sh -c Dark
-    [[ ${XDG_CURRENT_DESKTOP} = XFCE ]] && echo -e "${NFO} running 'xfce4-panel -r'..." && xfce4-panel -r && echo
+    sudo rm -rf /tmp/"${icon_theme}"
+    git clone "${git_url}" /tmp/"${icon_theme}"
+    sudo /tmp/"${icon_theme}"/install.sh --black -b
+    echo
 }
 
 
@@ -70,9 +70,9 @@ hello_gtk(){
 
 (groups | grep -qv sudo) && echo -e "${ERR} Need 'sudo' rights" && exit 1
 
-[[ $1 =~ ^-(r|-remove)$ ]] && byebye_gtk
+[[ $1 =~ ^-(r|-remove)$ ]] && byebye_icon
 
 [[ $1 ]] && echo -e "${error} Bad argument" && usage 1
 
-bye_gtk
-hello_gtk
+bye_icon
+hello_icon
