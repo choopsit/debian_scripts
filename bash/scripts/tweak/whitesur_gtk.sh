@@ -41,11 +41,13 @@ usage(){
 
 bye_gtk(){
     echo -e "${NFO} Removing ${gtk_theme}..."
+
     sudo rm -rf "${THEMES_DIR}"/WhiteSur*
 }
 
 byebye_gtk(){
     [[ ! -d "${THEMES_DIR}" ]] && echo -e "${NFO} ${gtk_theme} is not installed\n" && exit 0
+
     bye_gtk
     echo
     exit 0
@@ -53,16 +55,29 @@ byebye_gtk(){
 
 hello_gtk(){
     echo -e "${NFO} Installing/Updating ${gtk_theme}..."
+
     pkg_list=/tmp/pkglist
+
     rm -f "${pkg_list}"
+
     for pkg in sassc optipng libglib2.0-dev-bin; do
         (dpkg -l | grep -q "^ii  ${pkg} ") || echo "${pkg}" >>"${pkg_list}"
     done
+
     [[ -f "${pkg_list}" ]] && sudo xargs apt install -y < "${pkg_list}"
+
     sudo rm -rf /tmp/"${gtk_theme}"
     git clone "${git_url}" /tmp/"${gtk_theme}"
     sudo /tmp/"${gtk_theme}"/install.sh -c Dark
-    [[ ${XDG_CURRENT_DESKTOP} = XFCE ]] && echo -e "${NFO} running 'xfce4-panel -r'..." && xfce4-panel -r && echo
+
+    if [[ ${XDG_CURRENT_DESKTOP} = XFCE ]]; then
+        read -rp "Run 'xfce4-panel -r' [y/N] ? " -n1 reset_panel
+        [[ ${reset_panel} ]] && echo
+        [[ ${reset_panel,,} == y ]] &&
+            echo -e "${NFO} running 'xfce4-panel -r'..." && xfce4-panel -r
+
+        echo
+    fi
 }
 
 
