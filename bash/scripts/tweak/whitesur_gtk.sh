@@ -70,14 +70,14 @@ hello_gtk(){
     git clone "${git_url}" /tmp/"${gtk_theme}"
     sudo /tmp/"${gtk_theme}"/install.sh -c Dark
 
-    if [[ ${XDG_CURRENT_DESKTOP} = XFCE ]]; then
-        read -rp "Run 'xfce4-panel -r' [y/N] ? " -n1 reset_panel
-        [[ ${reset_panel} ]] && echo
-        [[ ${reset_panel,,} == y ]] &&
-            echo -e "${NFO} running 'xfce4-panel -r'..." && xfce4-panel -r
+    #if [[ ${XDG_CURRENT_DESKTOP} = XFCE ]]; then
+    #    read -rp "Run 'xfce4-panel -r' [y/N] ? " -n1 reset_panel
+    #    [[ ${reset_panel} ]] && echo
+    #    [[ ${reset_panel,,} == y ]] &&
+    #        echo -e "${NFO} running 'xfce4-panel -r'..." && xfce4-panel -r
 
-        echo
-    fi
+    #    echo
+    #fi
 }
 
 
