@@ -116,7 +116,7 @@ home_backup
 sysconf_backup
 
 if [[ $(hostname) == mrchat ]]; then
-    for spec_src in "potatoe/Music" "speedix/Work"; do
+    for spec_src in "potatoe/Music" "potatoe/Work"; do
         spec_backup "/volumes/${spec_src}"
     done
 fi
